@@ -115,7 +115,7 @@ def remove_outliers(df, col, std=3):
     return df
 
 
-def rename(df, names, raise_error = True):
+def rename(df, names, raise_error=True):
     """ Rename the column names of a pandas data frame. Raises an
 
     Parameters
@@ -133,7 +133,6 @@ def rename(df, names, raise_error = True):
         Returns renamed df.
     """
 
-    # Rename the columns
     for k in names.keys():
         if not any(df.columns == k) and raise_error:
             raise NameError("Variable " + k + " not available")
@@ -149,8 +148,8 @@ def len_scan(A):
 
         A = array with values which repeat l number of times
     """
-    for a in range(1,len(A)):
-        if A[a] != A [a-1]:
+    for a in range(1, len(A)):
+        if A[a] != A[a-1]:
             break
     return a
 
@@ -194,8 +193,9 @@ def chunks(l, n):
     A = l[:n]
     if len(l) > n:
         for i in range(n, len(l), n):
-            A = np.vstack((A,l[i:i+n]))
+            A = np.vstack((A, l[i:i+n]))
     return A
+
 
 def achunks(l, n):
     """ Yield successive n-sized chunks from l, alternating the list
@@ -207,9 +207,9 @@ def achunks(l, n):
     """
     A = l[:n]
     for idx, i in enumerate(range(n, len(l), n)):
-        if idx%2 == 1:
+        if idx % 2 == 1:
             A = np.vstack((A, l[i:i+n]))
-        if idx%2 == 0:
+        if idx % 2 == 0:
             A = np.vstack((A, l[i+n-1:i-1:-1]))
     return A
 
@@ -285,7 +285,7 @@ def represents_int(s):
         return False
 
 
-def find_header(filename, skip_blank_lines = True):
+def find_header(filename, skip_blank_lines=True):
     """ Find the line number where the header of the LabView data. By default it
         does not counts blank lines (i.e. '\n').
 
@@ -315,14 +315,18 @@ def find_header(filename, skip_blank_lines = True):
     return i-1
 
 
-def dim_LV_meas(filename):
+def dim_LV_meas(filename, c=8, l=1):
     """ Check wheter a LabView measurement was a 1D or 2D measurement by
-        checking if there is a X1 or X2 in line 1.
+        checking if there is a X1 or X2 in line l.
 
     Parameters
     ----------
     filename : str
         Filename
+    c : int (default = 8)
+        Which character to look for a 1 or 2
+    l : int (default = 1)
+        Which line number contains X1 or X2
 
     Returns
     -------
@@ -330,11 +334,12 @@ def dim_LV_meas(filename):
     """
     with open(filename) as f:
         content = f.readlines()
-    dim = content[1][8]
+    dim = content[l][c]
     if not represents_int(dim) and (dim != 1 or dim != 2):
-        raise ValueError('Can not determine measurement dimension from character '\
-                         '8 in line 1 from ' + filename)
-    return int(content[1][8])
+        raise ValueError('Can not determine measurement dimension from '
+                         'character ' + str(8) + ' in line ' + str(l) +
+                         ' from ' + filename)
+    return int(content[l][c])
 
 
 def index_char(s, c):
