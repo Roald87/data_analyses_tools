@@ -8,9 +8,4 @@ setup(
     author='Roald Ruiter',
     author_email='roaldruiter@gmail.com',
     url='https://github.com/Roald87/data_analyses_tools',
-    setup_requires=[
-        'os',
-        'numpy',
-        'pandas',
-    ],
 )
