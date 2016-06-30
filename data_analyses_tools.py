@@ -337,7 +337,7 @@ def dim_LV_meas(filename, c=8, l=1):
     dim = content[l][c]
     if not represents_int(dim) and (dim != 1 or dim != 2):
         raise ValueError('Can not determine measurement dimension from '
-                         'character ' + str(8) + ' in line ' + str(l) +
+                         'character ' + str(c) + ' in line ' + str(l) +
                          ' from ' + filename)
     return int(content[l][c])
 
