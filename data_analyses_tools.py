@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import pandas as pd
 
 
 def conv_3D(u, v, w):
@@ -14,7 +15,8 @@ def conv_3D(u, v, w):
         w : 1d pandas df
             Data measured as a function of u and v.
 
-        Return
+        Returns
+        -------
         X, Y, Z : 2D arrays
             Data suitable for 3D plotting.
     """
@@ -106,7 +108,7 @@ def remove_outliers(df, col, std=3):
         std : int
             All data within this standard deviation is kept
 
-        Return
+        Returns
         ------
         df : pandas dataframe
             Cleaned dataframe
@@ -353,3 +355,131 @@ def index_char(s, c):
             Character to find in *s*
     """
     return [index for index, value in enumerate(s) if value == c]
+
+
+def SV_B_sweep(B_max, B_step, t=1, B_align=30, fname='SV_sweep.txt'):
+    """
+    Create a mangetic field sweep for a spin valve measurement.
+
+    First column contains *B* sweeps which goes from -*B_align* to 0 and then
+    to *B_max* in *step* size, then to *B_align* to 0 and to -*B_max*. Second
+    column contains the wait time at each *B* value.
+
+    Parameters
+    ----------
+    B_max : float
+        The largest B value.
+    B_step : float
+        Magnetic field step size.
+    t : float (default = 1s)
+        Time to wait at each field value.
+    B_align : float (default = 30)
+        The field to align the electrodes.
+    fname : str (default='SV_sweep.txt')
+        Filename of the B sweep.
+
+    Returns
+    -------
+    Saves the B sweep in a tab separated file.
+
+    Example
+    -------
+    >>> SV_B_sweep(4, 2)
+    Saves 'SV_sweep.txt' containing:
+        [[-30, 0, 2, 4, 30, 0, -2, -4], [1, 1, 1, 1, 1, 1, 1, 1]]
+    """
+    B_sweep = np.hstack([[-1*B_align], np.arange(0, B_max+B_step, B_step)])
+    B_sweep = np.hstack([B_sweep, B_sweep*-1])
+    df = pd.DataFrame()
+    df['B'] = B_sweep
+    df['time'] = t
+    df.to_csv(fname, header=False, index=False, sep='\t')
+    print('Sweep saved in file: ' + fname)
+
+
+def Hanle_B_sweep(B_max, B_step, B_small=0, B_small_step=0, t=1,
+                  fname='Hanle_sweep.txt'):
+    """
+    Create a mangetic field sweep for a Hanle measurement.
+
+    First column contains *B* sweeps which goes from -*B_max* to *B_max* in
+    *B_step*, except if B_small is set. Then in the region from -*B_small* to
+    *B_small*, where it will do *B_small_step*. Second column contains the wait
+    time at each *B* value.
+
+    Parameters
+    ----------
+    B_max : float
+        The largest B value in Ampere.
+    B_step : float
+        Magnetic field step size in Ampere.
+    B_small : float (default = 0)
+        Field value where to start a smaller step size, shoudl be lower than
+        *B_max*.
+    B_small_step : float (default = 0)
+        The step size at smaller field values, starting at *B_small*.
+    t : float (default = 1s)
+        Time to wait at each field value in seconds.
+    fname : str (default='Hanle_sweep.txt')
+        Filename of the B sweep.
+
+    Returns
+    -------
+    Saves the B sweep in a tab separated file.
+
+    Example
+    -------
+    >>> Hanle_B_sweep(10.0, 2.0, 2.0, 0.5)
+    Saves 'Hanle_sweep.txt' containing:
+        [[-10, -8, -6, -4, -2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2, 4, 6, 8, 10],
+         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
+    """
+
+    B_sweep = np.arange(-B_max, B_max + B_step, B_step)
+    if B_small != 0:
+        B_sweep = B_sweep[abs(B_sweep) > B_small]
+        B_sweep = np.insert(B_sweep, len(B_sweep) / 2,
+                            np.arange(-B_small, B_small + B_small_step,
+                                      B_small_step))
+    df = pd.DataFrame()
+    df['B'] = B_sweep
+    df['time'] = t
+    df.to_csv(fname, header=False, index=False, sep='\t')
+    print('Sweep saved in file: ' + fname)
+
+
+def process_NL(dname, I, Vgain, cname):
+    """
+    Process non local measurement data from LabView and save it in a file.
+
+    Calculate the mangetic field in Tesla and the non-local resistance.
+    Additionaly it removes the two data points at the highest field values;
+    especially convienient for spin valve measurements, not important for Hanle
+    measurements.
+
+    Parameters
+    ----------
+    dname : str
+        Filename of the data.
+    I : float
+        Current used during the measurement
+    Vgain : array
+        The gain used on the IV meetkast for the different LIs.
+    cname : str
+        Calibration filename.
+
+    Returns
+    -------
+    Saves the processed data in *dname* + '_proc.dat'
+    """
+    df = pd.read_table(dname)
+    df = rename(df, {'X1': 'B(A)', 'Y1(X)': 'V1', 'Y2(X)': 'V2',
+                     'Y3(X)': 'V3'}, raise_error=False)
+    B_cal = pd.read_table(cname, skiprows=5, header=None,
+                          names=['B(A)', 'B(mT)'])
+    df['B(mT)'] = np.interp(df['B(A)'], B_cal['B(A)'], B_cal['B(mT)'])
+    for i, v in enumerate(Vgain):
+        df['Rnl' + str(i+1)] = df['V' + str(i+1)]/(I*v)
+    # Remove high field alignment of FMs
+    df = df[np.abs(df['B(A)']) < max(df['B(A)'])]
+    df.to_csv(dname[:-4] + '_proc.dat', sep='\t', index=False)
