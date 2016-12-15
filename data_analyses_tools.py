@@ -3,6 +3,45 @@ import os
 import pandas as pd
 
 
+def write_to_file(fname, new_data, update_duplicate=False, duplicate_col=''):
+    """
+        Writes a pandas df *new_data* to a tab separated text file *fname*, or 
+        appends the data to the file. 
+        Optionally it can also check whether the new_data is already present, by 
+        comparing the new_data in column *duplicate_col*.
+        
+        Parameters
+        ----------
+        fname : str
+            Name of the file.
+        new_data : pandas DataFrame
+            The new_data to append to *fname*
+        update_duplicates : boolean
+            Update if the current *new_data* already exist in column 
+            *duplicate_col*
+        duplicate_col : str
+            Name of the column to check for duplicate values
+    """
+    # Check if file already exists and update existing data     
+    if os.path.isfile(fname) and update_duplicate:
+        with open(fname, 'r') as f:
+            old_data = pd.read_csv(f, header=0, sep='\t')
+        duplicate=old_data[duplicate_col].isin(new_data[duplicate_col])    
+        if duplicate.any():
+            old_data.loc[duplicate, :] = new_data.values
+        else:
+            old_data=old_data.append(new_data)
+        with open(fname, 'w') as f:
+            old_data.to_csv(f, sep='\t', index=False)    
+    # Check if file already exists and append data     
+    elif os.path.isfile(fname) and (not update_duplicate):        
+        with open(fname, 'a') as f:
+            new_data.to_csv(f, sep='\t', index=False, header=False)
+    # If no file exists, write data to new file        
+    else:
+        new_data.to_csv(fname, sep='\t', index=False)   
+
+
 def conv_3D(u, v, w):
     """ Converts data so it can be plotted in 3D graphs.
 
