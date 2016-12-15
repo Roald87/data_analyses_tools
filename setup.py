@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(name='data_analyses_tools',
-    version='0.1.1',
+    version='0.1.2',
     description='Functions for data analyses, processing and measurements.',
     long_description=open('README.md').read(),
     author='Roald Ruiter',
